@@ -1,0 +1,101 @@
+#Kübra Ergün - Homework 1
+
+import random
+
+class Portfolio(object):
+    def __init__ (self):
+        self.cash = 0.00
+        self.stocks = []
+        self.mutualfunds = []
+        self.hist = ["\nYour transaction history is as follows:"]
+
+    def addCash(self, amount):
+        self.cash += amount
+        self.hist.append(f"You added ${amount}.")
+        
+    def withdrawCash(self, amount):
+        if self.cash >= amount:
+            self.cash -= amount
+            self.hist.append(f"You withdrew ${amount}.")
+        else: 
+            print ("Insufficient funds to withdraw cash!")
+
+    def buyStock(self, share, stock):
+        if self.cash >= stock.price * int(share): #integer since stocks can be purchased and sold in whole units
+            stock.share_bought += int(share)
+            self.stocks.append(stock)
+            self.cash -= share * stock.price
+            self.hist.append(f"{share} shares of {stock.stock_name} are bought.")
+        else: 
+            print ("Insufficient funds to buy the stock!")
+
+    def sellStock(self, stock_name, share):
+        randomprice = random.uniform(50, 150) #I got help from a friend to find out how I can meet the condition that stocks "are sold for a price that is uniformly drawn from [0.5X-1.5X]"
+        randomprice = randomprice / 100
+        for stock in self.stocks:
+            if stock.stock_name == stock_name:
+                stock.share_bought -= int(share)
+                self.cash += int(share) * randomprice
+                netgainfromsell = int(share) * randomprice - int(share) * stock.price
+                self.hist.append (f"{share} shares of {stock.stock_name} are sold for {int(share)*randomprice}. Your net gain from this trade equals {netgainfromsell}")
+
+    def buyMutualFund(self, share, mutualfund):
+        if self.cash >= share * 1.0:
+            mutualfund.share_bought += share
+            self.mutualfunds.append(mutualfund)
+            self.cash -= share * 1.0
+            self.hist.append (f"{share} shares of {mutualfund.mf_name} are bought.")
+        else:
+            print ("Insufficient funds to buy the mutual fund!")
+
+    def sellMutualFund(self, share, mutualfund):
+        randomprice = random.uniform(90, 120) #same logic as in sellStock
+        randomprice = randomprice / 100
+        for mutualfund in self.mutualfunds:
+            mutualfund.share_bought -= share
+            self.cash += share * randomprice
+            netgainfromsell = share * randomprice - share
+            self.hist.append (f"{share} shares of {mutualfund.mf_name} are sold for {share*randomprice}. Your net gain from this trade equals {netgainfromsell}")
+    
+    def __str__(self):
+        stocks = " "
+        mutuals = " "
+        for stock in self.stocks:
+            stocks += (f"\n{stock.share_bought} {stock.stock_name}")
+        for mutualfund in self.mutualfunds:
+            mutuals += (f"\n{mutualfund.share_bought} {mutualfund.mf_name}")
+
+        prt_str = (f"\nYour current balance:\nCash: ${self.cash}\nStocks:{stocks}\nMutual Funds:{mutuals}")
+        return str(prt_str)
+
+    def history(self):
+        for transaction in self.hist:
+            print(transaction)
+
+class stock(object):
+    def __init__ (self, price, stock_name):
+        self.price = price 
+        self.stock_name = stock_name
+        self.share_bought = 0
+
+class mutualfund(object):
+    def __init__ (self, price, mf_name):
+        self.price = 1.0
+        self.mf_name = mf_name
+        self.share_bought = 0
+
+
+#ex
+myportfolio = Portfolio()
+myportfolio.addCash(300.50)
+s = stock(20, "HFH")
+myportfolio.buyStock(5, s)
+mf1 = mutualfund(0, "BRT")
+mf2 = mutualfund(0, "GHT")
+myportfolio.buyMutualFund(10.3, mf1)
+myportfolio.buyMutualFund(4, mf2)
+myportfolio.sellMutualFund(3, "BRT")
+myportfolio.sellStock(1, "HFH")
+myportfolio.withdrawCash(50)
+myportfolio.history()
+print(myportfolio)
