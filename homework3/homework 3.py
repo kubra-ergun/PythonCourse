@@ -1,0 +1,143 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon May 10 23:31:51 2021
+
+@author: kuber
+"""
+import pandas as pd
+pd.options.mode.chained_assignment = None 
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+data = pd.read_csv('cses4_cut.csv')
+data.info() 
+sns.countplot(x='voted', data=data) # a lot more people have voted in the dataset
+
+X = data.drop('voted', axis=1)
+Y = data['voted']
+
+# Checking the correlation heatmap and the highly correlated features
+corr = data.corr()
+plt.figure(figsize=(20,10))
+sns.heatmap(corr, annot=True, cmap=plt.cm.Reds) 
+plt.show() 
+corr_target = abs(corr['voted'])
+print(np.round(corr_target.sort_values(ascending=False), decimals=2)[:5]) # The variables with high correlation: age 0.26, D2014 0.18, D2021 0.17, D2013 0.16. 
+
+# Trying ANOVA feature selection for categorical output
+from sklearn.feature_selection import SelectKBest
+feature_selection = SelectKBest(k=10)
+feature_selection.fit(X, Y)
+X.columns[feature_selection.get_support(indices=True)]
+vector_names = list(X.columns[feature_selection.get_support(indices=True)])
+print(vector_names)
+
+# After seeing that actually none of the features strongly correlates with the outcome variable, I mixed theory-driven selection and KBest selection and selected 12 variables. 
+df = data[['D2002', 'D2003', 'D2005', 'D2010', 'D2012', 'D2013', 'D2014','D2018', 'D2020', 
+              'D2021','D2025', 'D2028', 'D2031', 'age','voted']]
+
+# After checking the codebook, clear the missing values (9, 99 or 999), "refused"(7, 97, 997) and "don't know" (8, 98, 998) answers
+df['D2003'].replace({96: 0}, inplace=True) # with this change education variable becomes ordinal
+df.loc[df.D2002 > 6, 'D2002'] = np.nan
+df.loc[df.D2003 > 96, 'D2003'] = np.nan
+df.loc[df.D2005 > 6, 'D2005'] = np.nan
+df.loc[df.D2010 > 96, 'D2010'] = np.nan
+df.loc[df.D2012 > 6, 'D2012'] = np.nan
+df.loc[df.D2013 > 6, 'D2013'] = np.nan
+df.loc[df.D2014 > 6, 'D2014'] = np.nan
+df.loc[df.D2018 > 6, 'D2018'] = np.nan
+df.loc[df.D2020 > 6, 'D2020'] = np.nan
+df.loc[df.D2021 > 96, 'D2021'] = np.nan
+df.loc[df.D2025 > 6, 'D2025'] = np.nan
+df.loc[df.D2028 > 996, 'D2028'] = np.nan
+df.loc[df.D2031 > 6, 'D2031'] = np.nan
+
+# One-hot encoding
+data_ohe = df
+categoricals = ['D2002','D2005','D2010','D2012', 'D2013', 'D2014','D2018', 'D2028', 'D2031']
+for col in categoricals:
+    col_ohe = pd.get_dummies(df[col], prefix=col)
+    data_ohe = pd.concat((data_ohe, col_ohe), axis=1).drop(col, axis=1)
+pd.get_dummies(df, columns=categoricals)
+
+x_data = data_ohe.drop('voted', axis=1)
+y_data = data_ohe['voted']
+
+# Imputation - MICE rounded
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer
+from sklearn.linear_model import BayesianRidge
+imputer = IterativeImputer(estimator=BayesianRidge(), n_nearest_features=None, imputation_order='ascending')
+
+imputer.fit(x_data)
+x_data = pd.DataFrame(np.round(imputer.transform(x_data)))
+
+from sklearn import preprocessing
+scale_x = preprocessing.StandardScaler().fit(x_data)
+scale_x
+
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size = 0.3)
+
+# Trying Gaussian NB
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report
+nb = GaussianNB()
+nb.fit(x_data, y_data)
+nb_pred = nb.predict(x_test)
+print("Confusion Matrix for GaussianNB:\n", confusion_matrix(y_test, nb_pred))
+print("Accuracy Assessment for GaussianNB:\n", classification_report(y_test, nb_pred))
+
+# Trying Logistic Regression
+from sklearn.linear_model import LogisticRegression
+logit = LogisticRegression(max_iter=10000)
+logit.fit(x_train, y_train)
+logit_pred = logit.predict(x_test)
+print("Confusion Matrix for Logit:\n", confusion_matrix(y_test, logit_pred))
+print("Accuracy Assessment for Logit:\n", classification_report(y_test, logit_pred))
+
+# ROC Curve to compare the models
+from sklearn import metrics
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve
+
+nb_roc_auc = roc_auc_score(y_test, nb.predict(x_test))
+fpr, tpr, thresholds = roc_curve(y_test, nb.predict_proba(x_test)[:,1])
+plt.figure()
+plt.plot(fpr, tpr, label='Gaussian NB (area = %0.2f)' % nb_roc_auc)
+plt.plot([0, 1], [0, 1],'r--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC for GaussianNB')
+plt.show()
+
+logit_roc_auc = roc_auc_score(y_test, logit.predict(x_test))
+fpr, tpr, thresholds = roc_curve(y_test, logit.predict_proba(x_test)[:,1])
+plt.figure()
+plt.plot(fpr, tpr, label='Logistic Regression (area = %0.2f)' % logit_roc_auc)
+plt.plot([0, 1], [0, 1],'r--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC for Logistic Regression')
+plt.show()
+
+print ('ROC AUC for GaussianNB:', nb_roc_auc)
+print ('ROC AUC for LogisticRegression:', logit_roc_auc)
+
+# Cross-validation
+from sklearn.model_selection import cross_val_score
+scores_nb = cross_val_score(nb, x_data, y_data, cv=10)
+print('Cross-Validation Accuracy Scores:\n', scores_nb)
+scores_nb = pd.Series(scores_nb)
+print('GaussianNB - Min, Mean and Max Cross-Validation Accuracy Scores:', round(scores_nb.min(),2), round(scores_nb.mean(),2), round(scores_nb.max(),2))
+
+scores_logit = cross_val_score(logit, x_data, y_data, cv=10)
+print('Cross-Validation Accuracy Scores:\n', scores_logit)
+scores_logit = pd.Series(scores_logit)
+print('Logit - Min, Mean and Max Cross-Validation Accuracy Scores:', round(scores_logit.min(),2), round(scores_logit.mean(),2), round(scores_logit.max(),2))
