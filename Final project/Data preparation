@@ -1,0 +1,36 @@
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+
+# Eurobarometer 91.5 dataset, downloaded from GESIS using my own GESIS account, available at https://dbk.gesis.org/dbksearch/sdesc2.asp?db=e&no=7576
+df = pd.read_stata('ZA7576_v1-0-0.dta') 
+df = df[['qd3','qb3_1', 'qb3_2', 'd63','d70', 'qa1a_2', 'qa1a_4', 'qd1a_2', 'd1r2','d11', 'd10']]
+
+df.rename(columns={'qd3':'european_identity','qb3_1':'eu_migrants', 'qb3_2':'noneu_migrants',  
+                   'd1r2':'rightwing','d63':'socialclass','d70':'life_satisfaction', 'qa1a_2':'national_econ', 'qa1a_4':'job_situation',
+                   'qd1a_2':'attachment_country', 'd11':'age', 'd10':'gender'}, inplace=True)
+
+# Dropping missing values, refusals and "don't know" answers
+df.dropna(inplace = True)
+df.drop(df[df['european_identity']>4].index, inplace = True)
+df.drop(df[df['eu_migrants']== 5].index, inplace = True)
+df.drop(df[df['noneu_migrants']== 5].index, inplace = True)
+df.drop(df[df['national_econ']> 4].index, inplace = True)
+df.drop(df[df['attachment_country']> 4].index, inplace = True)
+df.drop(df[df['job_situation']> 4].index, inplace = True)
+df.drop(df[df['socialclass']> 5].index, inplace = True)
+df.drop(df[df['life_satisfaction']> 4].index, inplace = True)
+df.drop(df[df['rightwing']== 9].index, inplace = True)
+
+df['eu_migrants'] = df['eu_migrants'].replace([1,2,3,4],[1,1,0,0]) # positives as 1, negatives as 0
+df['noneu_migrants'] = df['noneu_migrants'].replace([1,2,3,4],[1,1,0,0]) # positives as 1, negatives as 0
+df['gender'] = df['gender'].replace([2],0) # female as 0
+df['life_satisfaction'] = df['life_satisfaction'].replace([1,2,3,4],[4,3,2,1]) # ascending from not at all satisfied to very satisfied
+df['national_econ'] = df['national_econ'].replace([1,2,3,4],[4,3,2,1]) # ascending from very bad to very good
+df['job_situation'] = df['job_situation'].replace([1,2,3,4],[4,3,2,1]) # ascending from not at all satisfied to very satisfied
+df['attachment_country'] = df['attachment_country'].replace([1,2,3,4],[4,3,2,1]) # ascending from not at all attached to very attached
+
+scaler = StandardScaler()
+scaler.fit(df)
+scaler.transform(df)
+
+df.to_csv("eurobarometer_logit.csv")
