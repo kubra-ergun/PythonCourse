@@ -4,7 +4,7 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 
 data = pd.read_csv("eurobarometer_logit.csv")
-X = data.drop(['eu_migrants','noneu_migrants'], axis=1)
+X = data.drop(['Unnamed: 0', 'eu_migrants','noneu_migrants'], axis=1)
 y2 = data['noneu_migrants']
 y1 = data['eu_migrants']
 
