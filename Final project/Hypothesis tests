@@ -1,0 +1,69 @@
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+data = pd.read_csv("eurobarometer_logit.csv")
+X = data.drop(['eu_migrants','noneu_migrants'], axis=1)
+y2 = data['noneu_migrants']
+y1 = data['eu_migrants']
+
+float_col = data.select_dtypes(include=['float64']) 
+for col in float_col.columns.values:
+    data[col] = data[col].astype('int64')
+    
+# Hypothesis 1    
+h1_logit=sm.Logit(y1,X)
+h1_result=h1_logit.fit()
+print(h1_result.summary())
+
+"""plt.rc('figure', figsize=(9, 5))
+plt.text(0.01, 0.05, str(h1_result.summary()), {'fontsize': 12}, fontproperties = 'monospace') 
+plt.axis('off')
+plt.tight_layout()
+plt.savefig('h1_output.png')"""
+
+h1_params = h1_result.params
+h1_conf = h1_result.conf_int()
+h1_conf["Odds Ratio"] = h1_params
+h1_conf.columns = ['5%', '95%', 'Odds Ratio']
+print("H1 Odds Ratio & Confidence Intervals:\n", np.exp(h1_conf))
+
+"""plt.rc('figure', figsize=(6, 3))
+plt.text(0.01, 0.05, str(np.exp(h1_conf)), {'fontsize': 12}, fontproperties = 'monospace') 
+plt.axis('off')
+plt.tight_layout()
+plt.savefig('h1_oddsratio.png')"""
+
+# Hypothesis 2
+h2_logit=sm.Logit(y2,X)
+h2_result=h2_logit.fit()
+print(h2_result.summary())
+
+"""plt.rc('figure', figsize=(9, 5))
+plt.text(0.01, 0.05, str(h2_result.summary()), {'fontsize': 12}, fontproperties = 'monospace') 
+plt.axis('off')
+plt.tight_layout()
+plt.savefig('h2_output.png')"""
+
+h2_params = h2_result.params
+h2_conf = h2_result.conf_int()
+h2_conf["Odds Ratio"] = h2_params
+h2_conf.columns = ['5%', '95%', 'Odds Ratio']
+print("H2 Odds Ratio & Confidence Intervals:\n", np.exp(h2_conf))
+
+"""plt.rc('figure', figsize=(6, 3))
+plt.text(0.01, 0.05, str(np.exp(h2_conf)), {'fontsize': 12}, fontproperties = 'monospace') 
+plt.axis('off')
+plt.tight_layout()
+plt.savefig('h2_oddsratio.png')"""
+
+# Hypothesis 3
+# Wilcoxon test: alternative to paired t-test when data has an ordinary scale or when not
+from scipy.stats import wilcoxon
+h3_df = data 
+h3_df.drop(data[data['european_identity']==1].index, inplace = True) # dropped "(NATIONALITY) only" answers
+h3_df = h3_df[['eu_migrants', 'noneu_migrants']]
+
+w, p = wilcoxon(h3_df['eu_migrants'] - h3_df['noneu_migrants'])
+print("Paired wilcoxon-test:", w, p)
