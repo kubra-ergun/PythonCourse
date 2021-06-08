@@ -29,7 +29,7 @@ h1_conf["Odds Ratio"] = h1_params
 h1_conf.columns = ['5%', '95%', 'Odds Ratio']
 print("H1 Odds Ratio & Confidence Intervals:\n", np.exp(h1_conf))
 
-"""plt.rc('figure', figsize=(6, 3))
+"""plt.rc('figure', figsize=(6, 2))
 plt.text(0.01, 0.05, str(np.exp(h1_conf)), {'fontsize': 12}, fontproperties = 'monospace') 
 plt.axis('off')
 plt.tight_layout()
@@ -52,7 +52,7 @@ h2_conf["Odds Ratio"] = h2_params
 h2_conf.columns = ['5%', '95%', 'Odds Ratio']
 print("H2 Odds Ratio & Confidence Intervals:\n", np.exp(h2_conf))
 
-"""plt.rc('figure', figsize=(6, 3))
+"""plt.rc('figure', figsize=(6, 2))
 plt.text(0.01, 0.05, str(np.exp(h2_conf)), {'fontsize': 12}, fontproperties = 'monospace') 
 plt.axis('off')
 plt.tight_layout()
