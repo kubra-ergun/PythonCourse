@@ -59,7 +59,7 @@ plt.tight_layout()
 plt.savefig('h2_oddsratio.png')"""
 
 # Hypothesis 3
-# Wilcoxon test: alternative to paired t-test when data has an ordinary scale or when not
+# Wilcoxon test: alternative to paired t-test 
 from scipy.stats import wilcoxon
 h3_df = data 
 h3_df.drop(data[data['european_identity']==1].index, inplace = True) # dropped "(NATIONALITY) only" answers
